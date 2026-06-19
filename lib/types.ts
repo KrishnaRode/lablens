@@ -46,6 +46,10 @@ export interface ReportExplanation {
   lifestyleNotes: string[];
   /** A calm, conservative sense of how soon to follow up. */
   urgency: Urgency;
+  /** The local model that actually generated this (set server-side). */
+  modelUsed?: string;
+  /** Language code the explanation was written in (set server-side). */
+  language?: string;
 }
 
 export interface ExplainRequest {
@@ -53,6 +57,8 @@ export interface ExplainRequest {
   report: string;
   /** Optional model override; defaults to appConfig.defaultModel. */
   model?: string;
+  /** Language code to explain in (see lib/languages.ts); defaults to English. */
+  language?: string;
 }
 
 export interface ApiError {

@@ -9,7 +9,70 @@ import {
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST ?? "http://localhost:11434";
 const GENERATE_URL = `${OLLAMA_HOST}/api/generate`;
+const TAGS_URL = `${OLLAMA_HOST}/api/tags`;
 const REQUEST_TIMEOUT_MS = 120_000;
+
+/**
+ * Preference order when the requested model isn't installed: pick the best
+ * already-present general-purpose model rather than forcing a download.
+ * (Coder-tuned models sit last — fine as a fallback, not ideal for prose.)
+ */
+const MODEL_PREFERENCE = [
+  "qwen2.5",
+  "qwen",
+  "llama3.1",
+  "llama3",
+  "gemma2",
+  "gemma",
+  "mistral",
+  "phi",
+  "llama3.2",
+  "qwen2.5-coder",
+];
+
+interface OllamaTag {
+  name: string;
+}
+
+/** Lists models installed in the local Ollama (empty array on any failure). */
+export async function listInstalledModels(): Promise<string[]> {
+  try {
+    const res = await fetch(TAGS_URL, { method: "GET" });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { models?: OllamaTag[] };
+    return (data.models ?? []).map((m) => m.name).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** True if an installed entry (e.g. "qwen2.5:latest") satisfies `requested`. */
+function installedMatches(installed: string, requested: string): boolean {
+  if (installed === requested) return true;
+  // a tag-less request ("qwen2.5") is satisfied by "qwen2.5:<tag>"
+  if (!requested.includes(":") && installed.startsWith(`${requested}:`)) return true;
+  return false;
+}
+
+/**
+ * Resolves the model to actually use: the requested one if installed, else the
+ * best already-installed model by preference, else the request as-is (so the
+ * generate call surfaces a friendly "pull it first" error). This lets the app
+ * run on whatever the user already has — no surprise multi-GB downloads.
+ */
+export async function resolveModel(requested: string): Promise<string> {
+  const installed = await listInstalledModels();
+  if (installed.length === 0) return requested;
+
+  const exact = installed.find((m) => installedMatches(m, requested));
+  if (exact) return exact;
+
+  for (const pref of MODEL_PREFERENCE) {
+    const hit = installed.find((m) => m === pref || m.startsWith(`${pref}:`));
+    if (hit) return hit;
+  }
+  return installed[0];
+}
 
 /** Thrown for known, user-presentable failure modes. */
 export class OllamaError extends Error {

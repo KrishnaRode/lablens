@@ -35,10 +35,10 @@ if ! command -v ollama >/dev/null 2>&1; then
 fi
 ok "Ollama $(ollama --version 2>/dev/null | head -1)"
 
-# 3) Resolve the model from app.config.ts (override with: MODEL=name ./run.sh)
-MODEL="${MODEL:-$(grep -Eo 'defaultModel:[[:space:]]*"[^"]+"' app.config.ts 2>/dev/null | grep -Eo '"[^"]+"' | tail -1 | tr -d '"')}"
-MODEL="${MODEL:-qwen2.5-coder}"
-info "Model: ${MODEL}"
+# 3) Resolve the default model from app.config.ts (override with: MODEL=name ./run.sh)
+MODEL_EXPLICIT="${MODEL:-}"
+DEFAULT_MODEL="${MODEL:-$(grep -Eo 'defaultModel:[[:space:]]*"[^"]+"' app.config.ts 2>/dev/null | grep -Eo '"[^"]+"' | tail -1 | tr -d '"')}"
+DEFAULT_MODEL="${DEFAULT_MODEL:-qwen2.5}"
 
 # 4) Make sure the Ollama server is up ---------------------------------------
 if ! curl -fsS "${OLLAMA_HOST_URL}/api/tags" >/dev/null 2>&1; then
@@ -55,12 +55,38 @@ if ! curl -fsS "${OLLAMA_HOST_URL}/api/tags" >/dev/null 2>&1; then
 fi
 ok "Ollama is running"
 
-# 5) Pull the model if it isn't present --------------------------------------
-if ! ollama list 2>/dev/null | grep -qiF "${MODEL}"; then
-  info "Pulling '${MODEL}' (first run only, this can take a few minutes)…"
-  ollama pull "${MODEL}"
+# 5) Ensure a usable model exists --------------------------------------------
+#    The app auto-detects installed models at request time, so we DON'T force a
+#    multi-GB download when you already have one. We pull the default only if
+#    Ollama has no models at all, or if you explicitly set MODEL=name.
+INSTALLED="$(ollama list 2>/dev/null | awk 'NR>1 && $1 != "" {print $1}')"
+
+model_present() {
+  # exact match, or tag-less request satisfied by "<name>:<tag>"
+  echo "${INSTALLED}" | grep -qx "$1" && return 0
+  case "$1" in *:*) return 1 ;; esac
+  echo "${INSTALLED}" | grep -q "^$1:" && return 0
+  return 1
+}
+
+if [ -n "${MODEL_EXPLICIT}" ]; then
+  # User asked for a specific model — honor it, pulling if missing.
+  if ! model_present "${DEFAULT_MODEL}"; then
+    info "Pulling requested model '${DEFAULT_MODEL}' (this can take a few minutes)…"
+    ollama pull "${DEFAULT_MODEL}"
+  fi
+  ok "Model '${DEFAULT_MODEL}' is ready"
+elif [ -z "${INSTALLED}" ]; then
+  info "No Ollama models installed yet — pulling default '${DEFAULT_MODEL}' (first run only)…"
+  ollama pull "${DEFAULT_MODEL}"
+  ok "Model '${DEFAULT_MODEL}' is ready"
+elif model_present "${DEFAULT_MODEL}"; then
+  ok "Model '${DEFAULT_MODEL}' is ready"
+else
+  ok "Default '${DEFAULT_MODEL}' not installed — the app will auto-use an installed model:"
+  echo "${INSTALLED}" | sed 's/^/    • /'
+  info "Want the best quality? Pull it any time: ollama pull ${DEFAULT_MODEL}"
 fi
-ok "Model '${MODEL}' is ready"
 
 # 6) Install dependencies -----------------------------------------------------
 if [ ! -d node_modules ]; then

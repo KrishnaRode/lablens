@@ -63,6 +63,9 @@ matters so you walk into your appointment informed, never to replace the clinici
 ## Features
 
 - 🔒 **100% local & private** — runs on free local AI; no cloud, no telemetry, no upload. Your report never leaves your computer.
+- 🌐 **12 Indian languages** — explain any report in English, Hindi, Bengali, Marathi, Telugu, Tamil, Gujarati, Kannada, Malayalam, Punjabi, Odia, or Urdu — in *very* simple, everyday words. Right-to-left rendering for Urdu.
+- 🔊 **Listen aloud** — a built-in "Listen" button reads the explanation in the chosen language using the browser's local speech engine (Web Speech API) — no cloud, no extra install.
+- 🧠 **Runs on what you already have** — auto-detects your installed Ollama models and uses the best one; never forces a surprise download.
 - 🧪 **Per-marker breakdown** — every result gets its value, a Low / Normal / High / Borderline status, its reference range, and a plain-English explanation of what it measures and what *this* value suggests.
 - 🔎 **What stands out** — the few results most worth attention, surfaced in plain language instead of buried in the list.
 - 🧭 **Questions for your doctor** — specific, useful questions generated from *your* results, so the appointment is productive.
@@ -236,7 +239,8 @@ LabLens exposes a single endpoint, served by the Next.js app at `http://localhos
 ```jsonc
 {
   "report": "Hemoglobin  10.2 g/dL  (13.0 - 17.0)\n...",  // required, ≤ 20,000 chars
-  "model": "qwen2.5"                                       // optional; defaults to app.config.ts
+  "model": "qwen2.5",                                      // optional; defaults to app.config.ts (auto-falls back to an installed model)
+  "language": "hi"                                         // optional; en (default), hi, bn, mr, te, ta, gu, kn, ml, pa, or, ur
 }
 ```
 
@@ -273,6 +277,23 @@ LabLens ships with one realistic, multi-panel sample (`lib/sample.ts`) — a CBC
 glucose + thyroid + vitamins report deliberately containing lows (anemia), highs
 (cholesterol, sugar), borderlines, and normals — so a one-click **Sample** demo exercises
 every status and renders a full, interesting answer.
+
+---
+
+## Languages & audio
+
+Pick any of 12 languages from the dropdown and the explanation is written in that
+language in simple, everyday words; the JSON structure and status labels stay stable so
+parsing and the UI never break. Urdu renders right-to-left.
+
+The **Listen** button uses the browser's built-in Web Speech API (`speechSynthesis`) to
+read the explanation aloud in the selected language — entirely on-device, no cloud and no
+extra dependency. Voice availability per language depends on your operating system's
+installed voices.
+
+> **Tip:** regional-language quality scales with the model. `llama3.2:3b` is understandable
+> but `qwen2.5` (or larger) produces noticeably better Indian-language prose — `ollama pull
+> qwen2.5` and the app will prefer it automatically.
 
 ---
 

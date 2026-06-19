@@ -5,8 +5,10 @@ import { appConfig } from "@/app.config";
 import AnswerView from "@/components/AnswerView";
 import ErrorMessage from "@/components/ErrorMessage";
 import ExplainButton from "@/components/ExplainButton";
+import LanguageSelect from "@/components/LanguageSelect";
 import LoadingState from "@/components/LoadingState";
 import ReportInput from "@/components/ReportInput";
+import { DEFAULT_LANGUAGE } from "@/lib/languages";
 import { SAMPLE_REPORT } from "@/lib/sample";
 import type { ApiError, ReportExplanation } from "@/lib/types";
 
@@ -14,6 +16,7 @@ type Status = "idle" | "loading" | "success" | "error";
 
 export default function Home() {
   const [report, setReport] = useState("");
+  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ReportExplanation | null>(null);
   const [error, setError] = useState<{ message: string; hint?: string } | null>(
@@ -32,7 +35,11 @@ export default function Home() {
       const res = await fetch("/api/explain-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report: trimmed, model: appConfig.defaultModel }),
+        body: JSON.stringify({
+          report: trimmed,
+          model: appConfig.defaultModel,
+          language,
+        }),
       });
 
       if (!res.ok) {
@@ -55,7 +62,7 @@ export default function Home() {
       });
       setStatus("error");
     }
-  }, [report]);
+  }, [report, language]);
 
   const loadSample = useCallback(() => {
     setReport(SAMPLE_REPORT);
@@ -103,7 +110,7 @@ export default function Home() {
           onSubmit={explain}
           disabled={status === "loading"}
         />
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <ExplainButton
             onExplain={explain}
             onSample={loadSample}
@@ -111,6 +118,13 @@ export default function Home() {
             loading={status === "loading"}
             hasInput={report.trim().length > 0}
           />
+          <div className="ml-auto">
+            <LanguageSelect
+              value={language}
+              onChange={setLanguage}
+              disabled={status === "loading"}
+            />
+          </div>
         </div>
       </section>
 

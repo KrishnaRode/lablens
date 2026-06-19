@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { appConfig } from "@/app.config";
-import { generateExplanation, OllamaError } from "@/lib/ollama";
+import { getLanguage } from "@/lib/languages";
+import { generateExplanation, OllamaError, resolveModel } from "@/lib/ollama";
 import { buildReportPrompt } from "@/lib/prompts";
 import type { ApiError, ExplainRequest, ReportExplanation } from "@/lib/types";
 
@@ -29,17 +30,26 @@ export async function POST(req: Request) {
     );
   }
 
-  const model =
+  const requested =
     typeof body.model === "string" && body.model.trim().length > 0
       ? body.model.trim()
       : appConfig.defaultModel;
 
+  // Treat the request as a *preference*: use it if installed, else fall back to
+  // whatever model the user already has — no surprise downloads.
+  const model = await resolveModel(requested);
+  const language = getLanguage(body.language);
+
   try {
     const explanation: ReportExplanation = await generateExplanation(
-      buildReportPrompt(report),
+      buildReportPrompt(report, language),
       model
     );
-    return NextResponse.json(explanation);
+    return NextResponse.json({
+      ...explanation,
+      modelUsed: model,
+      language: language.code,
+    });
   } catch (e) {
     if (e instanceof OllamaError) {
       return err(e.message, e.status, e.hint);

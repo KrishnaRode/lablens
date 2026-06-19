@@ -1,5 +1,7 @@
 "use client";
 
+import ListenButton from "@/components/ListenButton";
+import { getLanguage } from "@/lib/languages";
 import type {
   MarkerStatus,
   ReportExplanation,
@@ -10,17 +12,37 @@ interface AnswerViewProps {
   data: ReportExplanation;
 }
 
+/** Flattens the explanation into one readable script for text-to-speech. */
+function buildSpeech(data: ReportExplanation): string {
+  const parts: string[] = [data.overallSummary];
+  parts.push(...data.whatStandsOut);
+  for (const m of data.results) {
+    if (m.meaning) parts.push(`${m.name}. ${m.meaning}`);
+  }
+  parts.push(...data.questionsForYourDoctor);
+  parts.push(...data.lifestyleNotes);
+  return parts.filter(Boolean).join("\n");
+}
+
 /** The answer: summary, urgency, per-marker breakdown, and next steps. */
 export default function AnswerView({ data }: AnswerViewProps) {
+  const lang = getLanguage(data.language);
+  // Localized prose may be right-to-left (e.g. Urdu); section labels stay LTR.
+  const dir = lang.dir ?? "ltr";
+
   return (
     <div className="animate-rise space-y-5">
+      <div className="flex justify-end">
+        <ListenButton text={buildSpeech(data)} locale={lang.locale} />
+      </div>
+
       {/* Summary + urgency badge */}
       <section className="rounded-2xl border border-border bg-panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionLabel>Overview</SectionLabel>
           <UrgencyBadge urgency={data.urgency} />
         </div>
-        <p className="mt-3 text-[15px] leading-relaxed text-text">
+        <p dir={dir} className="mt-3 text-[15px] leading-relaxed text-text">
           {data.overallSummary}
         </p>
       </section>
@@ -31,7 +53,11 @@ export default function AnswerView({ data }: AnswerViewProps) {
           <SectionLabel>What stands out</SectionLabel>
           <ul className="mt-3 space-y-2.5">
             {data.whatStandsOut.map((item, i) => (
-              <li key={i} className="flex gap-3 text-[15px] leading-relaxed text-text-muted">
+              <li
+                key={i}
+                dir={dir}
+                className="flex gap-3 text-[15px] leading-relaxed text-text-muted"
+              >
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                 <span>{item}</span>
               </li>
@@ -65,7 +91,10 @@ export default function AnswerView({ data }: AnswerViewProps) {
                   )}
                 </div>
                 {m.meaning && (
-                  <p className="mt-2 text-[14.5px] leading-relaxed text-text-muted">
+                  <p
+                    dir={dir}
+                    className="mt-2 text-[14.5px] leading-relaxed text-text-muted"
+                  >
                     {m.meaning}
                   </p>
                 )}
@@ -83,6 +112,7 @@ export default function AnswerView({ data }: AnswerViewProps) {
             {data.questionsForYourDoctor.map((q, i) => (
               <li
                 key={i}
+                dir={dir}
                 className="flex gap-3 text-[15px] leading-relaxed text-text-muted"
               >
                 <span className="mt-0.5 select-none font-mono text-sm text-accent">
@@ -103,6 +133,7 @@ export default function AnswerView({ data }: AnswerViewProps) {
             {data.lifestyleNotes.map((n, i) => (
               <li
                 key={i}
+                dir={dir}
                 className="flex gap-3 text-[15px] leading-relaxed text-text-muted"
               >
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-status-normal" />
@@ -114,6 +145,14 @@ export default function AnswerView({ data }: AnswerViewProps) {
       )}
 
       <Disclaimer />
+
+      {data.modelUsed && (
+        <p className="text-center text-xs text-text-faint">
+          Generated locally with{" "}
+          <span className="font-mono text-text-muted">{data.modelUsed}</span> · nothing left
+          your device
+        </p>
+      )}
     </div>
   );
 }
