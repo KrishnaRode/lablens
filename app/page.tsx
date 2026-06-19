@@ -88,10 +88,17 @@ export default function Home() {
         </span>
       </div>
 
-      {/* Title + tagline */}
+      {/* Logo + title + tagline */}
       <header className="text-center">
-        <h1 className="text-balance text-4xl font-bold tracking-tight text-text sm:text-5xl">
-          {appConfig.name}
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <div className="absolute inset-0 -z-10 rounded-full bg-accent-soft/25 blur-2xl" />
+            <MicroscopeLogo />
+          </div>
+        </div>
+        <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
+          <span className="text-text">Lab</span>
+          <span className="text-accent">Lens</span>
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-balance text-[15px] leading-relaxed text-text-muted sm:text-base">
           {appConfig.tagline}
@@ -161,6 +168,29 @@ function EmptyState() {
         to see it work on a real report.
       </p>
     </div>
+  );
+}
+
+function MicroscopeLogo() {
+  return (
+    <svg
+      className="h-20 w-20 text-accent drop-shadow-[0_0_20px_rgba(109,139,255,0.35)] sm:h-24 sm:w-24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-label="LabLens microscope logo"
+      role="img"
+    >
+      <path d="M6 18h8" />
+      <path d="M3 22h18" />
+      <path d="M14 22a7 7 0 1 0 0-14h-1" />
+      <path d="M9 14h2" />
+      <path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z" />
+      <path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3" />
+    </svg>
   );
 }
 
