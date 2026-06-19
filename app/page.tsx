@@ -1,0 +1,169 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { appConfig } from "@/app.config";
+import AnswerView from "@/components/AnswerView";
+import ErrorMessage from "@/components/ErrorMessage";
+import ExplainButton from "@/components/ExplainButton";
+import LoadingState from "@/components/LoadingState";
+import ReportInput from "@/components/ReportInput";
+import { SAMPLE_REPORT } from "@/lib/sample";
+import type { ApiError, ReportExplanation } from "@/lib/types";
+
+type Status = "idle" | "loading" | "success" | "error";
+
+export default function Home() {
+  const [report, setReport] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [result, setResult] = useState<ReportExplanation | null>(null);
+  const [error, setError] = useState<{ message: string; hint?: string } | null>(
+    null
+  );
+
+  const explain = useCallback(async () => {
+    const trimmed = report.trim();
+    if (!trimmed) return;
+
+    setStatus("loading");
+    setError(null);
+    setResult(null);
+
+    try {
+      const res = await fetch("/api/explain-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report: trimmed, model: appConfig.defaultModel }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as ApiError | null;
+        setError({
+          message: data?.error ?? "Something went wrong.",
+          hint: data?.hint,
+        });
+        setStatus("error");
+        return;
+      }
+
+      const data = (await res.json()) as ReportExplanation;
+      setResult(data);
+      setStatus("success");
+    } catch {
+      setError({
+        message: "Could not reach the app's API.",
+        hint: "Check that the dev server is running, then try again.",
+      });
+      setStatus("error");
+    }
+  }, [report]);
+
+  const loadSample = useCallback(() => {
+    setReport(SAMPLE_REPORT);
+    setStatus("idle");
+    setResult(null);
+    setError(null);
+  }, []);
+
+  const clear = useCallback(() => {
+    setReport("");
+    setStatus("idle");
+    setResult(null);
+    setError(null);
+  }, []);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-[900px] flex-col px-5 py-14 sm:py-20">
+      {/* Series chip */}
+      <div className="mb-8 flex justify-center">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-panel/60 px-3.5 py-1.5 text-xs font-medium text-text-muted backdrop-blur">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          {appConfig.series}
+        </span>
+      </div>
+
+      {/* Title + tagline */}
+      <header className="text-center">
+        <h1 className="text-balance text-4xl font-bold tracking-tight text-text sm:text-5xl">
+          {appConfig.name}
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-balance text-[15px] leading-relaxed text-text-muted sm:text-base">
+          {appConfig.tagline}
+        </p>
+        <p className="mx-auto mt-3 inline-flex items-center gap-2 text-xs text-text-faint">
+          <LockIcon />
+          Runs entirely on your machine — your report never leaves your computer.
+        </p>
+      </header>
+
+      {/* Input */}
+      <section className="mt-10">
+        <ReportInput
+          value={report}
+          onChange={setReport}
+          onSubmit={explain}
+          disabled={status === "loading"}
+        />
+        <div className="mt-4">
+          <ExplainButton
+            onExplain={explain}
+            onSample={loadSample}
+            onClear={clear}
+            loading={status === "loading"}
+            hasInput={report.trim().length > 0}
+          />
+        </div>
+      </section>
+
+      {/* Answer */}
+      <section className="mt-8">
+        {status === "loading" && <LoadingState />}
+        {status === "error" && error && (
+          <ErrorMessage
+            message={error.message}
+            hint={error.hint}
+            onRetry={explain}
+          />
+        )}
+        {status === "success" && result && <AnswerView data={result} />}
+        {status === "idle" && <EmptyState />}
+      </section>
+
+      <footer className="mt-16 text-center text-xs text-text-faint">
+        {appConfig.name} · Educational only, not medical advice · Local AI via Ollama
+      </footer>
+    </main>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-panel/40 px-6 py-10 text-center">
+      <p className="text-sm text-text-muted">
+        Paste a blood or lab report above, then press{" "}
+        <span className="font-medium text-text">Explain Report</span>.
+      </p>
+      <p className="mt-2 text-xs text-text-faint">
+        New here? Click <span className="font-medium text-text-muted">Sample</span>{" "}
+        to see it work on a real report.
+      </p>
+    </div>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}

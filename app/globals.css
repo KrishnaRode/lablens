@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — the fixed "Free AI. Real Problems." palette.
+   Each --color-* becomes a utility automatically (bg-panel, …).
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-bg: #05060a;
+  --color-bg-soft: #0a0c14;
+  --color-panel: #0e1119;
+  --color-panel-hover: #141826;
+  --color-border: #1c2333;
+  --color-border-soft: #161b28;
+  --color-text: #e8ebf2;
+  --color-text-muted: #9aa3b5;
+  --color-text-faint: #5d6678;
+  --color-accent: #6d8bff;
+  --color-accent-soft: #3d57c9;
+
+  /* status accents for lab markers (calm, never neon) */
+  --color-status-low: #5fb0ff;
+  --color-status-high: #ff8f6b;
+  --color-status-normal: #5fd0a3;
+  --color-status-watch: #f2c879;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo,
+    Consolas, monospace;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ambient navy glow — two soft radial gradients behind everything. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      60rem 40rem at 50% -10%,
+      rgba(61, 87, 201, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      50rem 40rem at 90% 10%,
+      rgba(109, 139, 255, 0.08),
+      transparent 55%
+    );
+}
+
+::selection {
+  background: rgba(109, 139, 255, 0.28);
+  color: var(--color-text);
+}
+
+/* Scrollbar — subtle. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-panel-hover);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Motion — subtle, purposeful only.
+   ───────────────────────────────────────────────────────────── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-panel) 25%,
+    var(--color-panel-hover) 37%,
+    var(--color-panel) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
