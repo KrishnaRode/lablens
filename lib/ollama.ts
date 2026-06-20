@@ -10,7 +10,9 @@ import {
 const OLLAMA_HOST = process.env.OLLAMA_HOST ?? "http://localhost:11434";
 const GENERATE_URL = `${OLLAMA_HOST}/api/generate`;
 const TAGS_URL = `${OLLAMA_HOST}/api/tags`;
-const REQUEST_TIMEOUT_MS = 120_000;
+// Generous: local CPU inference of a full report — especially in non-Latin
+// scripts (Telugu, Tamil, …) — can run several minutes on smaller machines.
+const REQUEST_TIMEOUT_MS = 240_000;
 
 /**
  * Preference order when the requested model isn't installed: pick the best
@@ -100,11 +102,41 @@ export async function generateExplanation(
   prompt: string,
   model: string
 ): Promise<ReportExplanation> {
+  return coerceExplanation(await runJson(prompt, model, 0.2));
+}
+
+/**
+ * Generates a batch of short wellness tips (run hot for variety). Non-critical:
+ * callers should treat a thrown error as "no tips" and fall back gracefully.
+ */
+export async function generateTips(
+  prompt: string,
+  model: string
+): Promise<string[]> {
+  const parsed = await runJson(prompt, model, 0.9);
+  // Tolerate weaker models: tips may be an array, a single newline-separated
+  // string, or the whole object may itself be the array.
+  let raw: unknown = (parsed as { tips?: unknown })?.tips ?? parsed;
+  if (typeof raw === "string") {
+    raw = raw.split(/\r?\n+|(?<=[.!?。।۔])\s+/);
+  }
+  return asStringArray(raw)
+    .map((t) => t.replace(/^\s*(?:[-*•·]|\d+[.)])\s*/, "").trim())
+    .filter((t) => t.length > 0)
+    .slice(0, 12);
+}
+
+/** Calls the model and returns parsed JSON, retrying once on parse failures. */
+async function runJson(
+  prompt: string,
+  model: string,
+  temperature: number
+): Promise<unknown> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await callOllama(prompt, model);
-      return coerceExplanation(extractJson(raw));
+      const raw = await callOllama(prompt, model, temperature);
+      return extractJson(raw);
     } catch (err) {
       lastErr = err;
       // Don't retry hard failures (offline, model missing) — only parse/transient.
@@ -116,7 +148,11 @@ export async function generateExplanation(
     : new OllamaError("The AI response could not be understood.", { status: 422 });
 }
 
-async function callOllama(prompt: string, model: string): Promise<string> {
+async function callOllama(
+  prompt: string,
+  model: string,
+  temperature: number
+): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -130,7 +166,7 @@ async function callOllama(prompt: string, model: string): Promise<string> {
         prompt,
         stream: false,
         format: "json",
-        options: { temperature: 0.2 },
+        options: { temperature },
       }),
       signal: controller.signal,
     });

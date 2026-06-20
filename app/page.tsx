@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { appConfig } from "@/app.config";
 import AnswerView from "@/components/AnswerView";
 import ErrorMessage from "@/components/ErrorMessage";
@@ -8,7 +8,8 @@ import ExplainButton from "@/components/ExplainButton";
 import LanguageSelect from "@/components/LanguageSelect";
 import LoadingState from "@/components/LoadingState";
 import ReportInput from "@/components/ReportInput";
-import { DEFAULT_LANGUAGE } from "@/lib/languages";
+import { getFallbackTips, getTipCaption } from "@/lib/fallbackTips";
+import { DEFAULT_LANGUAGE, getLanguage } from "@/lib/languages";
 import { SAMPLE_REPORT } from "@/lib/sample";
 import type { ApiError, ReportExplanation } from "@/lib/types";
 
@@ -22,6 +23,14 @@ export default function Home() {
   const [error, setError] = useState<{ message: string; hint?: string } | null>(
     null
   );
+  const [tips, setTips] = useState<string[]>(getFallbackTips(DEFAULT_LANGUAGE));
+
+  // Curated, localized wellness tips for the "while you wait" carousel. These
+  // are instant and need no model call, so they never compete with the report
+  // for the single local LLM (which on CPU would slow or time out the answer).
+  useEffect(() => {
+    setTips(getFallbackTips(language));
+  }, [language]);
 
   const explain = useCallback(async () => {
     const trimmed = report.trim();
@@ -88,18 +97,18 @@ export default function Home() {
         </span>
       </div>
 
-      {/* Logo + title + tagline */}
+      {/* Logo + title (side by side) + tagline */}
       <header className="text-center">
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          <div className="relative shrink-0">
             <div className="absolute inset-0 -z-10 rounded-full bg-accent-soft/25 blur-2xl" />
             <MicroscopeLogo />
           </div>
+          <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
+            <span className="text-text">Lab</span>
+            <span className="text-accent">Lens</span>
+          </h1>
         </div>
-        <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
-          <span className="text-text">Lab</span>
-          <span className="text-accent">Lens</span>
-        </h1>
         <p className="mx-auto mt-4 max-w-xl text-balance text-[15px] leading-relaxed text-text-muted sm:text-base">
           {appConfig.tagline}
         </p>
@@ -137,7 +146,13 @@ export default function Home() {
 
       {/* Answer */}
       <section className="mt-8">
-        {status === "loading" && <LoadingState />}
+        {status === "loading" && (
+          <LoadingState
+            tips={tips}
+            dir={getLanguage(language).dir ?? "ltr"}
+            caption={getTipCaption(language)}
+          />
+        )}
         {status === "error" && error && (
           <ErrorMessage
             message={error.message}
@@ -174,7 +189,7 @@ function EmptyState() {
 function MicroscopeLogo() {
   return (
     <svg
-      className="h-20 w-20 text-accent drop-shadow-[0_0_20px_rgba(109,139,255,0.35)] sm:h-24 sm:w-24"
+      className="h-14 w-14 text-accent drop-shadow-[0_0_20px_rgba(109,139,255,0.35)] sm:h-16 sm:w-16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

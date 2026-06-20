@@ -65,6 +65,7 @@ matters so you walk into your appointment informed, never to replace the clinici
 - 🔒 **100% local & private** — runs on free local AI; no cloud, no telemetry, no upload. Your report never leaves your computer.
 - 🌐 **12 Indian languages** — explain any report in English, Hindi, Bengali, Marathi, Telugu, Tamil, Gujarati, Kannada, Malayalam, Punjabi, Odia, or Urdu — in *very* simple, everyday words. Right-to-left rendering for Urdu.
 - 🔊 **Listen aloud** — a built-in "Listen" button reads the explanation in the chosen language using the browser's local speech engine (Web Speech API) — no cloud, no extra install.
+- 💡 **Wellness tips while you wait** — a localized health-tip carousel (curated pools per language, instant and model-free) keeps the wait useful without ever slowing the actual answer.
 - 🧠 **Runs on what you already have** — auto-detects your installed Ollama models and uses the best one; never forces a surprise download.
 - 🧪 **Per-marker breakdown** — every result gets its value, a Low / Normal / High / Borderline status, its reference range, and a plain-English explanation of what it measures and what *this* value suggests.
 - 🔎 **What stands out** — the few results most worth attention, surfaced in plain language instead of buried in the list.

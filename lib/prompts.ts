@@ -77,6 +77,33 @@ Respond with the JSON object only.`;
 }
 
 /**
+ * Builds the prompt for the "wellness tips while you wait" carousel. The model
+ * returns a fresh, varied batch each time (run at high temperature), in the
+ * chosen language — so tips are correct per-language and effectively unique.
+ */
+export function buildTipsPrompt(language: Language): string {
+  const langLine =
+    language.code === "en"
+      ? "Write the tips in simple, friendly English."
+      : `Write the tips in simple, everyday ${language.promptName}. Do not use English.`;
+
+  return `Generate 10 short, friendly everyday wellness tips for a general audience.
+Mix these themes across the list: healthy eating, physical activity / exercise,
+hydration, good sleep, and simple mental-wellbeing habits.
+
+RULES:
+- Each tip is ONE short, practical, positive sentence (about 6-14 words).
+- General lifestyle only. NO medical claims, NO diagnosis, NO treatment, NO medicines,
+  NO supplement doses, NO numbers presented as medical advice.
+- Make them varied and specific — do NOT make them all about drinking water.
+- No duplicates, no numbering, no emojis.
+- ${langLine}
+
+Return JSON only, exactly this shape: { "tips": ["tip one", "tip two", ...] }
+with exactly 10 tips and nothing else.`;
+}
+
+/**
  * A guaranteed-valid fallback if the model output cannot be coerced at all.
  */
 export function emptyExplanation(message: string): ReportExplanation {
